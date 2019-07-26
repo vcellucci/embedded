@@ -12,9 +12,9 @@ using int32_t  = int;
 template<typename address_type, address_type address, address_type val>
 class register_t {
 public:
-  static void set() {
-    *reinterpret_cast<volatile address_type*>(address) = val;
-  }
+    static void set() {
+        *reinterpret_cast<volatile address_type*>(address) = val;
+    }
 };
 
 template<typename counter_type, counter_type value>
@@ -30,21 +30,21 @@ public:
 
 
 int main(){
-  register_t<uint32_t, gpiof::clock_gate, 0x20U>::set(); // enable gpiof
-  register_t<uint32_t, gpiof::direction, 0x0EU>::set();  // set all to output
-  register_t<uint32_t, gpiof::digital_mode, 0x0EU>::set(); // set all to digital
-  using blue_led = register_t<uint32_t, gpiof::data, 0x4U>;
-  using red_led  = register_t<uint32_t, gpiof::data, 0x2U>;
-  using busy     = busy_wait_t<int32_t, 1000000>;
+
+    register_t<uint32_t, gpiof::clock_gate, 0x20U>::set(); // enable gpiof
+    register_t<uint32_t, gpiof::direction, 0x0EU>::set();  // set all to output
+    register_t<uint32_t, gpiof::digital_mode, 0x0EU>::set(); // set all to digital
+    using blue_led = register_t<uint32_t, gpiof::data, 0x4U>;
+    using red_led  = register_t<uint32_t, gpiof::data, 0x2U>;
+    using busy     = busy_wait_t<int32_t, 1000000>;
 
 
     while(1){
-      blue_led::set();
-      busy::wait();
+        blue_led::set();
+        busy::wait();
 
-      red_led::set();
-      busy::wait();
-
+        red_led::set();
+        busy::wait();
     }
 
     return 0;

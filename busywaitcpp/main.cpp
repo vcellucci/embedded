@@ -1,8 +1,10 @@
 
 // just trying to see what the compiler does here... using modern c++ generates same code as c!
 
+
 using uint32_t = unsigned int;
 using int32_t  = int;
+
 
 namespace gpiof {
     static constexpr uint32_t clock_gate    = 0x400FE608U;
@@ -41,6 +43,10 @@ public:
         return *reinterpret_cast<volatile address_type*>(address);
     }
 
+    static void toggle() {
+        (*reinterpret_cast<volatile address_type*>(address + (val << 2))) ^= val;
+    }
+
 };
 
 template<uint32_t base_addr>
@@ -66,17 +72,12 @@ public:
        mode_reg::value() = 0x0EU; // set to digital mode
     }
 
-    static void blue_on_only() {
+    static void reset_leds() {
         red::zero();
-        green::zero();
-        blue::set();
-    }
-
-    static void red_on_only() {
-        red::set();
         green::zero();
         blue::zero();
     }
+
 };
 
 template<typename counter_type, counter_type value>
@@ -95,14 +96,16 @@ int main(){
     gpiof_regmap::set_to_led_output_mode();
 
     using busy     = busy_wait_t<int32_t, 1000000>;
+    gpiof_regmap::reset_leds();
+    gpiof_regmap::red::set();
 
     while(1){
 
-      gpiof_regmap::blue_on_only();
+      gpiof_regmap::red::toggle();
+      gpiof_regmap::blue::toggle();
+
       busy::wait();
 
-      gpiof_regmap::red_on_only();
-      busy::wait();
 
     }
 

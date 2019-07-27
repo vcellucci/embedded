@@ -1,22 +1,20 @@
 
+// just trying to see what the compiler does here... using modern c++ generates same code as c!
+
 using uint32_t = unsigned int;
 using int32_t  = int;
 
-
 namespace gpiof {
-    static constexpr uint32_t direction     = 0x40025400U;
     static constexpr uint32_t clock_gate    = 0x400FE608U;
-    static constexpr uint32_t digital_mode  = 0x4002551CU;
-    static constexpr uint32_t data          = 0x40025000U;
+    static constexpr uint32_t base          = 0x40025000U;
     static constexpr uint32_t red_led       = 0x02U;
     static constexpr uint32_t blue_led      = 0x04U;
     static constexpr uint32_t green_led     = 0x08U;
-
 };
 
 template<typename address_type,
         address_type address,
-        address_type val>
+        address_type val = 0>
 class register_t {
 public:
     static void write() {
@@ -34,7 +32,7 @@ public:
     }
 
     // returns value for direct access
-    static address_type& value() {
+    static volatile address_type& value() {
         return *reinterpret_cast<volatile address_type*>(address);
     }
 
@@ -43,6 +41,42 @@ public:
         return *reinterpret_cast<volatile address_type*>(address);
     }
 
+};
+
+template<uint32_t base_addr>
+class gpio_t {
+public:
+    using data_reg      = register_t<uint32_t, base_addr>;
+    using direction_reg = register_t<uint32_t, base_addr + 0x400U>;
+    using mode_reg      = register_t<uint32_t, base_addr + 0x51CU>;
+
+};
+
+class gpiof_regmap : public gpio_t<gpiof::base> {
+public:
+    using red      = register_t<uint32_t, gpiof::base, gpiof::red_led>;
+    using blue     = register_t<uint32_t, gpiof::base, gpiof::blue_led>;
+    using green    = register_t<uint32_t, gpiof::base, gpiof::green_led>;
+
+public:
+
+    static void set_to_led_output_mode() {
+       register_t<uint32_t, gpiof::clock_gate, 0x20U>::write(); // enable gpiof
+       direction_reg::value() = 0x0EU; // set to output
+       mode_reg::value() = 0x0EU; // set to digital mode
+    }
+
+    static void blue_on_only() {
+        red::zero();
+        green::zero();
+        blue::set();
+    }
+
+    static void red_on_only() {
+        red::set();
+        green::zero();
+        blue::zero();
+    }
 };
 
 template<typename counter_type, counter_type value>
@@ -56,26 +90,18 @@ public:
     }
 };
 
-
-
 int main(){
 
-    register_t<uint32_t, gpiof::clock_gate, 0x20U>::write(); // enable gpiof
-    register_t<uint32_t, gpiof::direction, 0x0EU>::write();  // set all to output
-    register_t<uint32_t, gpiof::digital_mode, 0x0EU>::write(); // set all to digital
+    gpiof_regmap::set_to_led_output_mode();
 
     using busy     = busy_wait_t<int32_t, 1000000>;
-    using red      = register_t<uint32_t, gpiof::data, gpiof::red_led>;
-    using blue     = register_t<uint32_t, gpiof::data, gpiof::blue_led>;
 
     while(1){
 
-      red::zero();
-      blue::set();
+      gpiof_regmap::blue_on_only();
       busy::wait();
 
-      blue::zero();
-      red::set();
+      gpiof_regmap::red_on_only();
       busy::wait();
 
     }

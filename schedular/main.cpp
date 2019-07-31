@@ -10,40 +10,7 @@ modified to use SystickHandler
 #include <functional>
 #include "bsp.hpp"
 #include "singleton.hpp"
-
-template<uint32_t max_size>
-class round_robin_schedular_t {
-public:
-
-    void queue_task(std::function<void()>&& task) {
-        tasks[current_size++] = std::move(task);
-    }
-
-    void switch_to_next_task() {
-        if( current_size == 0 ){
-            return;
-        }
-
-        increment_index();
-
-        if( current_index < current_size ){
-            tasks[current_index]();
-        }
-    }
-
-protected:
-
-    void increment_index() {
-
-        current_index = (current_index + 1) % current_size;
-    }
-
-protected:
-    std::function<void()> tasks[max_size];
-    bool started = false;
-    volatile uint32_t current_size = 0;
-    volatile uint32_t current_index = 0;
-};
+#include "schedular.hpp"
 
 using led_schedular = round_robin_schedular_t<3>;
 using the_led_schedular = singleton_t<led_schedular>;
@@ -74,11 +41,11 @@ int main(){
 
     });
 
+    the_led_schedular::instance().start();
+
     systick_regmap::load_reg::value() = SYSCLOCK_HZ / 2U - 1U;
     systick_regmap::val_reg::value() = 0U;
     systick_regmap::ctrl_reg::value() = (1U << 2) | (1U << 1) | 1U;
-
-
 
     while(1){
         // do nothing
